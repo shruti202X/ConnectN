@@ -16,14 +16,12 @@ EMPTY = 0
 PLAYER_PIECE = 1
 AI_PIECE = 2
 
-N = 7
-ROW_COUNT = 13
-COLUMN_COUNT = 14
+N = 4
+ROW_COUNT = 6
+COLUMN_COUNT = 7
 WINDOW_LENGTH = N
 
-def create_board():
-	board = np.zeros((ROW_COUNT,COLUMN_COUNT))
-	return board
+board = np.zeros((ROW_COUNT,COLUMN_COUNT))
 
 def drop_piece(board, row, col, piece):
 	board[row][col] = piece
@@ -38,6 +36,128 @@ def get_next_open_row(board, col):
 
 def print_board(board):
 	print(np.flip(board, 0))
+
+def checkDiagonally1(board, playerNumber):
+	max = 0
+	upper_bound = ROW_COUNT - 1 + COLUMN_COUNT - 1 - (N - 1)
+	returnMap = {}
+	for i in range(1, N + 1):
+		returnMap[i] = 0
+	for k in range(N - 1, upper_bound + 1):
+		max = 0
+		if k < COLUMN_COUNT:
+			x = k
+		else:
+			x = COLUMN_COUNT - 1
+		y = -x + k
+		while x >= 0 and y < ROW_COUNT:
+			if board[ROW_COUNT - 1 - y][x] == playerNumber:
+				max += 1
+				if y == (ROW_COUNT - 1):
+					returnMap[max] += 1
+			else:
+				if max > 0 and max <= N and board[ROW_COUNT - 1 - y][x] == 0:
+					returnMap[max] += 1
+				max = 0
+			x -= 1
+			y += 1
+	return returnMap
+
+def checkDiagonally2(board, playerNumber):
+	max = 0
+	upper_bound = COLUMN_COUNT - 1 - (N - 1)
+	lower_bound = -(ROW_COUNT - 1 - (N - 1))
+	returnMap = {}
+	for i in range(1, N + 1):
+		returnMap[i] = 0
+	for k in range(lower_bound, upper_bound + 1):
+		max = 0
+		if k >= 0:
+			x = k
+		else:
+			x = 0
+		y = x - k
+		while x >= 0 and x < COLUMN_COUNT and y < ROW_COUNT:
+			if board[ROW_COUNT - 1 - y][x] == playerNumber:
+				max += 1
+				if y == (ROW_COUNT - 1) or (x == COLUMN_COUNT - 1):
+					returnMap[max] += 1
+			else:
+				if max > 0 and max <= N and board[ROW_COUNT - 1 - y][x] == 0:
+					returnMap[max] += 1
+				max = 0
+			x += 1
+			y += 1
+	return returnMap
+
+def checkHorizontally(board, playerNumber):
+	max = 0
+	returnMap = {}
+	for i in range(1, N + 1):
+		returnMap[i] = 0
+	for i in range(ROW_COUNT):
+		max = 0
+		for j in range(COLUMN_COUNT):
+			if board[i][j] == playerNumber:
+				max += 1
+				if j == COLUMN_COUNT - 1:
+					returnMap[max] += 1
+			else:
+				if max > 0 and max <= N and board[i][j] == 0:
+					returnMap[max] += 1
+				max = 0
+	return returnMap
+
+def checkVertically(board, playerNumber):
+	max = 0
+	returnMap = {}
+	for i in range(1, N + 1):
+		returnMap[i] = 0
+	for j in range(COLUMN_COUNT):
+		max = 0
+		for i in range(ROW_COUNT):
+			if board[i][j] == playerNumber:
+				max += 1
+				if i == ROW_COUNT - 1:
+					returnMap[max] += 1
+			else:
+				if max > 0 and max <= N and board[i][j] == 0:
+					returnMap[max] += 1
+				max = 0
+	return returnMap
+
+def getPlays(board, playerNumber):
+	returnMap = {}
+	player_h = checkHorizontally(board, playerNumber)
+	player_v = checkVertically(board, playerNumber)
+	player_d1 = checkDiagonally1(board, playerNumber)
+	player_d2 = checkDiagonally2(board, playerNumber)
+	for i in range(1, N+1):
+		returnMap[i] = player_h[i] + player_v[i] + player_d1[i] + player_d2[i]
+	return returnMap
+
+def calcHeuristic(board, MyPlayerPiece):
+	h = 0
+	constant = 100 / N
+	all_single_plays = True
+	myPlays = getPlays(board, MyPlayerPiece)
+	opp_piece = PLAYER_PIECE
+	if MyPlayerPiece == PLAYER_PIECE:
+		opp_piece = AI_PIECE
+	opponentPlays = getPlays(board, opp_piece)
+
+	for a in range(1, N+1):
+		if a > 1:
+			all_single_plays = not (myPlays[a] > 0 or opponentPlays[a] > 0)
+		h += (constant * a) * math.pow(myPlays[a], a) - (constant * a) * math.pow(opponentPlays[a], a)
+
+	if myPlays[N] > 0 or (myPlays[1] > opponentPlays[1] and all_single_plays):
+		h = math.inf
+
+	if opponentPlays[N] > 0:
+		h = -math.inf
+
+	return h
 
 def winning_move(board, piece):
 	# Check horizontal locations for win
@@ -79,76 +199,21 @@ def winning_move(board, piece):
 	# No winning move
 	return False
 
-
-def evaluate_window(window, piece):
-	score = 0
-	opp_piece = PLAYER_PIECE
-	if piece == PLAYER_PIECE:
-		opp_piece = AI_PIECE
-
-	if window.count(piece) == N:
-		score += 100
-	elif window.count(piece) == N-1 and window.count(EMPTY) == 1:
-		score += 5
-	elif window.count(piece) == N-2 and window.count(EMPTY) == 2:
-		score += 2
-
-	if window.count(opp_piece) == N-1 and window.count(EMPTY) == 1:
-		score -= 4
-
-	return score
-
-def score_position(board, piece):
-	score = 0
-
-	## Score center column
-	center_array = [int(i) for i in list(board[:, COLUMN_COUNT//2])]
-	center_count = center_array.count(piece)
-	score += center_count * 3
-
-	## Score Horizontal
-	for r in range(ROW_COUNT):
-		row_array = [int(i) for i in list(board[r,:])]
-		for c in range(COLUMN_COUNT-N+1):
-			window = row_array[c:c+WINDOW_LENGTH]
-			score += evaluate_window(window, piece)
-
-	## Score Vertical
-	for c in range(COLUMN_COUNT):
-		col_array = [int(i) for i in list(board[:,c])]
-		for r in range(ROW_COUNT-N+1):
-			window = col_array[r:r+WINDOW_LENGTH]
-			score += evaluate_window(window, piece)
-
-	## Score posiive sloped diagonal
-	for r in range(ROW_COUNT-N+1):
-		for c in range(COLUMN_COUNT-N+1):
-			window = [board[r+i][c+i] for i in range(WINDOW_LENGTH)]
-			score += evaluate_window(window, piece)
-
-	for r in range(ROW_COUNT-N+1):
-		for c in range(COLUMN_COUNT-N+1):
-			window = [board[r+N-1-i][c+i] for i in range(WINDOW_LENGTH)]
-			score += evaluate_window(window, piece)
-
-	return score
-
-def is_terminal_node(board):
-	return winning_move(board, PLAYER_PIECE) or winning_move(board, AI_PIECE) or len(get_valid_locations(board)) == 0
-
 def minimax(board, depth, alpha, beta, maximizingPlayer):
 	valid_locations = get_valid_locations(board)
-	is_terminal = is_terminal_node(board)
+	player_wins = winning_move(board, PLAYER_PIECE)
+	ai_wins = winning_move(board, AI_PIECE)
+	is_terminal = player_wins or ai_wins or len(valid_locations) == 0
 	if depth == 0 or is_terminal:
 		if is_terminal:
-			if winning_move(board, AI_PIECE):
-				return (None, 100000000000000)
-			elif winning_move(board, PLAYER_PIECE):
-				return (None, -10000000000000)
+			if ai_wins:
+				return (None, math.inf)
+			elif player_wins:
+				return (None, -math.inf)
 			else: # Game is over, no more valid moves
 				return (None, 0)
 		else: # Depth is zero
-			return (None, score_position(board, AI_PIECE))
+			return (None, calcHeuristic(board, AI_PIECE))
 	if maximizingPlayer:
 		value = -math.inf
 		column = random.choice(valid_locations)
@@ -202,7 +267,6 @@ def draw_board(board):
 				pygame.draw.circle(screen, YELLOW, (int(c*SQUARESIZE+SQUARESIZE/2), height-int(r*SQUARESIZE+SQUARESIZE/2)), RADIUS)
 	pygame.display.update()
 
-board = create_board()
 print_board(board)
 game_over = False
 

@@ -28,83 +28,92 @@ def drop_piece(board, board_col, row, col, piece):
 	board[row][col] = piece
 	board_col[col] += 1
 
-def is_valid_location(board_col, col):
+def is_valid_location(board, col):
 	return board[ROW_COUNT-1][col] == 0
 
 def get_next_open_row(board, col):
-	return board_col[col]
+	return int(board_col[col])
 
 def print_board(board):
 	print(np.flip(board, 0))
 
 def checkDiagonally1(board, board_col, playerNumber):
-	max = 0
-	upper_bound = ROW_COUNT - 1 + COLUMN_COUNT - 1 - (N - 1)
-	returnMap = {}
-	for i in range(1, N + 1):
-		returnMap[i] = 0
-	for k in range(N - 1, upper_bound + 1):
-		max = 0
-		if k < COLUMN_COUNT:
-			x = k
-		else:
-			x = COLUMN_COUNT - 1
-		y = -x + k
-		while x >= 0 and y < ROW_COUNT:
-			if board[ROW_COUNT - 1 - y][x] == playerNumber:
-				max += 1
-				if y == (ROW_COUNT - 1):
-					returnMap[max] += 1
-			else:
-				if max > 0 and max <= N and board[ROW_COUNT - 1 - y][x] == 0:
-					returnMap[max] += 1
-				max = 0
-			x -= 1
-			y += 1
-	return returnMap
-
-def checkDiagonally2(board, playerNumber):
-	max = 0
-	upper_bound = COLUMN_COUNT - 1 - (N - 1)
-	lower_bound = -(ROW_COUNT - 1 - (N - 1))
-	returnMap = {}
-	for i in range(1, N + 1):
-		returnMap[i] = 0
-	for k in range(lower_bound, upper_bound + 1):
-		max = 0
-		if k >= 0:
-			x = k
-		else:
-			x = 0
-		y = x - k
-		while x >= 0 and x < COLUMN_COUNT and y < ROW_COUNT:
-			if board[ROW_COUNT - 1 - y][x] == playerNumber:
-				max += 1
-				if y == (ROW_COUNT - 1) or (x == COLUMN_COUNT - 1):
-					returnMap[max] += 1
-			else:
-				if max > 0 and max <= N and board[ROW_COUNT - 1 - y][x] == 0:
-					returnMap[max] += 1
-				max = 0
-			x += 1
-			y += 1
-	return returnMap
-
-def checkHorizontally(board, playerNumber):
-
+	
 	returnMap = {i: 0 for i in range(1, N + 1)}
 	
-	for i in range(ROW_COUNT):
-		max = 0
-		for j in range(COLUMN_COUNT):
-			if board[i][j] == playerNumber:
-				max += 1
-				if j == COLUMN_COUNT - 1:
-					returnMap[max] += 1
+	for j in range(COLUMN_COUNT):
+		count = 0
+		top_row = int(board_col[j]) - 1
+		for i in range(top_row, -1, -1):
+			if j+top_row-i > COLUMN_COUNT :
+				if count > 0:
+					returnMap[count] += 1
+				break
+			if board[i][j+top_row-i] == playerNumber:
+				count += 1
+				if count == N or i == 0:
+					returnMap[count] += 1
+					break
 			else:
-				if max > 0 and max <= N and board[i][j] == 0:
-					returnMap[max] += 1
-				max = 0
+				if count > 0:
+					returnMap[count] += 1
+				break
+
+	return returnMap
+
+def checkDiagonally2(board, board_col, playerNumber):
+
+	returnMap = {i: 0 for i in range(1, N + 1)}
+
+	for j in range(COLUMN_COUNT):
+		count = 0
+		top_row = board_col[j] - 1
+		for i in range(top_row, -1, -1):
+			if j+i-top_row < 0:
+				if count > 0:
+					returnMap[count] += 1
+				break
+			if board[i][j+i-top_row] == playerNumber:
+				count += 1
+				if count == N or i == 0:
+					returnMap[count] += 1
+					break
+			else:
+				if count > 0:
+					returnMap[count] += 1
+				break
+
+	return returnMap
+
+def checkHorizontally(board, board_col, playerNumber):
+
+	returnMap = {i: 0 for i in range(1, N + 1)}
+
+	for j in range(COLUMN_COUNT):
+		count = 0
+		top_row = int(board_col[j])
+		for j2 in range(j+1, COLUMN_COUNT, 1):
+			if board[top_row][j2] == playerNumber:
+				count += 1
+				if count == N or j2 == COLUMN_COUNT-1:
+					returnMap[count] += 1
+					break
+			else:
+				if count > 0:
+					returnMap[count] += 1
+				break
+		count = 0
+		for j2 in range(j-1, -1, -1):
+			if board[top_row][j2] == playerNumber:
+				count += 1
+				if count == N or j2 == 0:
+					returnMap[count] += 1
+					break
+			else:
+				if count > 0:
+					returnMap[count] += 1
+				break
+
 	return returnMap
 
 def checkVertically(board, board_col, playerNumber):
@@ -113,7 +122,7 @@ def checkVertically(board, board_col, playerNumber):
 
 	for j in range(COLUMN_COUNT):
 		count = 0
-		top_row = board_col[j] - 1
+		top_row = int(board_col[j]) - 1
 		for i in range(top_row, -1, -1):
 			if board[i][j] == playerNumber:
 				count += 1
@@ -123,28 +132,29 @@ def checkVertically(board, board_col, playerNumber):
 			else:
 				if count > 0:
 					returnMap[count] += 1
+				break
 
 	return returnMap
 
-def getPlays(board, playerNumber):
+def getPlays(board, board_col, playerNumber):
 	returnMap = {}
-	player_h = checkHorizontally(board, playerNumber)
-	player_v = checkVertically(board, playerNumber)
-	player_d1 = checkDiagonally1(board, playerNumber)
-	player_d2 = checkDiagonally2(board, playerNumber)
+	player_h = checkHorizontally(board, board_col, playerNumber)
+	player_v = checkVertically(board, board_col, playerNumber)
+	player_d1 = checkDiagonally1(board, board_col, playerNumber)
+	player_d2 = checkDiagonally2(board, board_col, playerNumber)
 	for i in range(1, N+1):
 		returnMap[i] = player_h[i] + player_v[i] + player_d1[i] + player_d2[i]
 	return returnMap
 
-def calcHeuristic(board, MyPlayerPiece):
+def calcHeuristic(board, board_col, MyPlayerPiece):
 	h = 0
 	constant = 100 / N
 	all_single_plays = True
-	myPlays = getPlays(board, MyPlayerPiece)
+	myPlays = getPlays(board, board_col, MyPlayerPiece)
 	opp_piece = PLAYER_PIECE
 	if MyPlayerPiece == PLAYER_PIECE:
 		opp_piece = AI_PIECE
-	opponentPlays = getPlays(board, opp_piece)
+	opponentPlays = getPlays(board, board_col, opp_piece)
 
 	for a in range(1, N+1):
 		if a > 1:
@@ -199,7 +209,7 @@ def winning_move(board, piece):
 	# No winning move
 	return False
 
-def minimax(board, depth, alpha, beta, maximizingPlayer):
+def minimax(board, board_col, depth, alpha, beta, maximizingPlayer):
 	valid_locations = get_valid_locations(board)
 	player_wins = winning_move(board, PLAYER_PIECE)
 	ai_wins = winning_move(board, AI_PIECE)
@@ -213,15 +223,16 @@ def minimax(board, depth, alpha, beta, maximizingPlayer):
 			else: # Game is over, no more valid moves
 				return (None, 0)
 		else: # Depth is zero
-			return (None, calcHeuristic(board, AI_PIECE))
+			return (None, calcHeuristic(board, board_col, AI_PIECE))
 	if maximizingPlayer:
 		value = -math.inf
 		column = random.choice(valid_locations)
 		for col in valid_locations:
 			row = get_next_open_row(board, col)
 			b_copy = board.copy()
-			drop_piece(b_copy, row, col, AI_PIECE)
-			new_score = minimax(b_copy, depth-1, alpha, beta, False)[1]
+			bcol_copy = board_col.copy()
+			drop_piece(b_copy, bcol_copy, row, col, AI_PIECE)
+			new_score = minimax(b_copy, bcol_copy, depth-1, alpha, beta, False)[1]
 			if new_score > value:
 				value = new_score
 				column = col
@@ -236,8 +247,9 @@ def minimax(board, depth, alpha, beta, maximizingPlayer):
 		for col in valid_locations:
 			row = get_next_open_row(board, col)
 			b_copy = board.copy()
-			drop_piece(b_copy, row, col, PLAYER_PIECE)
-			new_score = minimax(b_copy, depth-1, alpha, beta, True)[1]
+			bcol_copy = board_col.copy()
+			drop_piece(b_copy, board_col, row, col, PLAYER_PIECE)
+			new_score = minimax(b_copy, board_col, depth-1, alpha, beta, True)[1]
 			if new_score < value:
 				value = new_score
 				column = col
@@ -317,7 +329,7 @@ while not game_over:
 
 				if is_valid_location(board, col):
 					row = get_next_open_row(board, col)
-					drop_piece(board, row, col, PLAYER_PIECE)
+					drop_piece(board, board_col, row, col, PLAYER_PIECE)
 
 					if winning_move(board, PLAYER_PIECE):
 						label = myfont.render("Player 1 wins!!", 1, RED)
@@ -334,12 +346,12 @@ while not game_over:
 	# Ask for Player 2 Input
 	if turn == AI and not game_over:				
 
-		col, minimax_score = minimax(board, 5, -math.inf, math.inf, True)
+		col, minimax_score = minimax(board, board_col, 5, -math.inf, math.inf, True)
 
 		if is_valid_location(board, col):
 			#pygame.time.wait(500)
 			row = get_next_open_row(board, col)
-			drop_piece(board, row, col, AI_PIECE)
+			drop_piece(board, board_col, row, col, AI_PIECE)
 
 			if winning_move(board, AI_PIECE):
 				label = myfont.render("Player 2 wins!!", 1, YELLOW)

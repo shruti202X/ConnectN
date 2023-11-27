@@ -155,7 +155,8 @@ def getPlays(board, board_col, playerNumber):
 
 def calcHeuristic(board, board_col, MyPlayerPiece):
 	h = 0
-	constant = 100 / N
+	constant1 = 100 / N
+	constant2 = 100
 	all_single_plays = True
 	myPlays = getPlays(board, board_col, MyPlayerPiece)
 	opp_piece = PLAYER_PIECE
@@ -166,8 +167,14 @@ def calcHeuristic(board, board_col, MyPlayerPiece):
 	for a in range(1, N+1):
 		if a > 1:
 			all_single_plays = not (myPlays[a] > 0 or opponentPlays[a] > 0)
-		h += (constant * a) * math.pow(myPlays[a], a) - (constant * a) * math.pow(opponentPlays[a], a)
-
+		h += (constant2 * a) * math.pow(myPlays[a], a) - (constant1 * a) * math.pow(opponentPlays[a], a)
+		'''
+		if a == N-1 :
+			h += 5*myPlays[a]
+			h -= 4*opponentPlays[a]
+		elif a == N-3 :
+			h += 2*myPlays[a]
+		'''
 	if myPlays[N] > 0 or (myPlays[1] > opponentPlays[1] and all_single_plays):
 		h = math.inf
 

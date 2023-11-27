@@ -22,7 +22,7 @@ COLUMN_COUNT = 7
 WINDOW_LENGTH = N
 
 board = np.zeros((ROW_COUNT,COLUMN_COUNT))
-board_col = np.zeros(COLUMN_COUNT)
+board_col = [0]*COLUMN_COUNT
 
 def drop_piece(board, board_col, row, col, piece):
 	board[row][col] = piece
@@ -92,6 +92,8 @@ def checkHorizontally(board, board_col, playerNumber):
 	for j in range(COLUMN_COUNT):
 		count = 0
 		top_row = int(board_col[j])
+		if top_row == ROW_COUNT :
+			pass
 		for j2 in range(j+1, COLUMN_COUNT, 1):
 			if board[top_row][j2] == playerNumber:
 				count += 1
